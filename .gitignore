@@ -1,0 +1,24 @@
+# Python virtual environment
+venv/
+.venv/
+env/
+
+# Environment secrets
+.env
+
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local scraped data and tracker sheets
+Master_Tracker.xlsx
+Test_Tracker.xlsx
+summaries/
+temp-chrome-profile/
+
+# Playwright binaries and logs
+.playwright-cli/
+*.log
+chrome_run.log
+chrome.log
