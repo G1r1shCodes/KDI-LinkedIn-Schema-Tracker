@@ -9,10 +9,10 @@ logger = logging.getLogger(__name__)
 
 # Centralized selectors - easy to update if LinkedIn changes
 SELECTORS = {
-    "post_container": ".feed-shared-update-v2",
-    "author_name": ".update-components-actor__name, .update-components-actor__title",
-    "post_text": ".update-components-text",
-    "post_date_raw": ".update-components-actor__sub-description, .update-components-actor__sub-description span", # Visually hidden timestamp
+    "post_container": ".feed-shared-update-v2, .occludable-update, .update-components-update-v2, div[data-urn*='urn:li:activity']",
+    "author_name": ".update-components-actor__name, .update-components-actor__title, .feed-shared-actor__name",
+    "post_text": ".update-components-text, .feed-shared-update-v2__description, .break-words",
+    "post_date_raw": ".update-components-actor__sub-description, .update-components-actor__sub-description span, .feed-shared-actor__sub-description",
     "post_link_button": "button[aria-label='Copy link to post'], .feed-shared-control-menu__item",
     "dropdown_trigger": ".feed-shared-control-menu__trigger"
 }
@@ -60,6 +60,10 @@ class LinkedInScraper:
                                 # LinkedIn dates are relative ("1d", "2h", "1w").
                                 if self._is_recent(post_data.get('date_raw', '')):
                                     all_posts.append(post_data)
+                                else:
+                                    logger.info(f"Post skipped (not recent enough): {post_data.get('date_raw', '')}")
+                            else:
+                                logger.info("Post skipped (empty text or extraction failed)")
                             
                     except PlaywrightTimeoutError:
                         logger.error(f"Timeout while loading {url}")
@@ -124,7 +128,7 @@ class LinkedInScraper:
         if 'd' in date_str: # days
             try:
                 days = int(''.join(filter(str.isdigit, date_str)))
-                if days <= 2:
+                if days <= 7: # Changed from 2 to 7 to be more forgiving
                     return True
             except:
                 pass

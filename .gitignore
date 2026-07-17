@@ -15,7 +15,7 @@ __pycache__/
 Master_Tracker.xlsx
 Test_Tracker.xlsx
 summaries/
-temp-chrome-profile/
+chrome-data/
 
 # Playwright binaries and logs
 .playwright-cli/

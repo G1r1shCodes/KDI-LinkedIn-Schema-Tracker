@@ -1,4 +1,4 @@
-# ⚡ LinkedIn Tender & Scheme Tracker
+# LinkedIn Tender & Scheme Tracker
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.12-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.12" />
@@ -12,11 +12,11 @@ An internal automation tool built for **KDI Power Private Limited** to track Lin
 
 ---
 
-## 🔍 Features
+## Features
 
-*   **Secure Browsing**: Connects directly to your already active, logged-in Chrome session via Chromium CDP. The script **never** stores or automates login passwords, keeping your account safe from bot restriction flags.
+*   **Secure Browsing**: Connects directly to a dedicated, isolated Chrome session (`chrome-data`) via Chromium CDP. This ensures the scraper never conflicts with your personal Chrome windows.
 *   **Targeted Competitor Tracking**: Automatically visits the recent activity pages of **10 target profiles** in the wire and cable sector (e.g. Polycab, KEI, Finolex, RR Global, V-Guard, Havells, etc.).
-*   **Smart Filtering**: Scrapes recent posts and filters them based on keywords related to tenders, power schemes, distribution grids, and electrification orders.
+*   **Smart Filtering**: Scrapes recent posts and filters them based on government schemes (RDSS, DDUGJY) and keywords related to tenders, power schemes, distribution grids, and electrification orders.
 *   **Direct AI Summarization**: Integrates directly with the **Mistral API** (`mistral-small-latest`) to generate concise 3–5 bullet point summaries.
 *   **Double-Click Simplicity**: Runs via a simple double-click on `RunTracker.bat` for everyday office use.
 *   **Robust Fault Tolerance**:
@@ -25,7 +25,7 @@ An internal automation tool built for **KDI Power Private Limited** to track Lin
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```text
 ├── docs/                      # Project assignment specs and requirement PDF
@@ -34,6 +34,7 @@ An internal automation tool built for **KDI Power Private Limited** to track Lin
 │   ├── test_mistral.py        # Direct Mistral connection check
 │   └── test_pipeline.py       # Full processing verification using mock posts
 ├── summaries/                 # Locally stored detailed post summary txt files
+├── chrome-data/               # Isolated, dedicated Chrome profile folder
 ├── .env                       # Environment configurations (API key, user profile path)
 ├── .gitignore                 # Files excluded from git tracking
 ├── config.json                # Editable list of targets and industry keywords
@@ -47,7 +48,7 @@ An internal automation tool built for **KDI Power Private Limited** to track Lin
 
 ---
 
-## 🛠️ Setup Instructions
+## Setup Instructions
 
 ### 1. Pre-requisites
 *   **Python 3.12+** installed on Windows.
@@ -67,7 +68,7 @@ Create a `.env` file in the root directory (or edit the existing one):
 ```ini
 MISTRAL_API_KEY=your_mistral_api_key_here
 MISTRAL_MODEL=mistral-small-latest
-CHROME_USER_DATA_DIR=C:\Users\<YourUsername>\AppData\Local\Google\Chrome\User Data
+CHROME_USER_DATA_DIR=C:\Users\<YourUsername>\Downloads\KDI-LinkedIn-Schema-Tracker\chrome-data
 ```
 
 ### 4. Edit Targets and Keywords
@@ -75,7 +76,7 @@ Open `config.json` to edit or add target LinkedIn profile links and keyword crit
 ```json
 {
   "target_profiles": [
-    "https://www.linkedin.com/company/polycab-india-limited/recent-activity/all/",
+    "https://www.linkedin.com/company/polycabindia/recent-activity/all/",
     ...
   ],
   "keywords": [
@@ -86,20 +87,15 @@ Open `config.json` to edit or add target LinkedIn profile links and keyword crit
 
 ---
 
-## 🚀 Daily Usage
+## Daily Usage
 
 To run the tracker daily, complete these steps:
 
-1.  **Close all Chrome windows** on your machine.
-2.  Open **PowerShell** and run Chrome with debugging enabled:
-    ```powershell
-    & "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --profile-directory="Profile 2"
-    ```
-    *(Note: Replace "Profile 2" with your active profile. Ensure you are logged into LinkedIn in this window)*.
-3.  **Double-click** the **[RunTracker.bat](file:///d:/KDI-LinkedIn%20Schema%20Tracker/RunTracker.bat)** file at the root of the project.
-4.  The script will automatically run, scrape matching posts, save summaries in the spreadsheet, and print a summary report.
+1.  **Double-click** the **[RunTracker.bat](file:///d:/KDI-LinkedIn%20Schema%20Tracker/RunTracker.bat)** file at the root of the project.
+2.  A dedicated Chrome window will open. If it's your first time, you must manually log into LinkedIn in that window.
+3.  The script will automatically run, scrape matching posts, save summaries in the spreadsheet, and print a summary report. You can keep your personal Chrome windows open while it runs!
 
 ---
 
-## 📄 License
+## License
 This project is proprietary and built strictly for the internal use of **KDI Power Private Limited**.
