@@ -39,8 +39,13 @@ class LinkedInScraper:
                     logger.error("Failed to connect to Chrome. Did you start Chrome with --remote-debugging-port=9222?")
                     raise e
                 
-                for url in profile_urls:
-                    logger.info(f"Visiting profile: {url}")
+                for idx, url in enumerate(profile_urls):
+                    # Pause every 20 profiles to avoid triggering LinkedIn's bot detection
+                    if idx > 0 and idx % 20 == 0:
+                        logger.info(f"Take a break! Pausing for 30 seconds to avoid LinkedIn rate limits...")
+                        await asyncio.sleep(30)
+                        
+                    logger.info(f"[{idx+1}/{len(profile_urls)}] Visiting profile: {url}")
                     try:
                         await page.goto(url, wait_until="domcontentloaded", timeout=25000)
                         await self._random_delay(4, 7)

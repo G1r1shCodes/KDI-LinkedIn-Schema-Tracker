@@ -46,7 +46,12 @@ class DataProcessor:
                 f"3. Preview: {preview}"
             )
             
+        import time
         import requests
+        
+        # Add a short delay to avoid hitting Mistral API rate limits (HTTP 429)
+        time.sleep(1.5)
+        
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json"
