@@ -5,8 +5,9 @@ import os
 logger = logging.getLogger(__name__)
 
 class DataProcessor:
-    def __init__(self, keywords: list, api_key: str = None, model: str = None):
+    def __init__(self, keywords: list, exclude_keywords: list = None, api_key: str = None, model: str = None):
         self.keywords = [k.lower() for k in keywords]
+        self.exclude_keywords = [k.lower() for k in (exclude_keywords or [])]
         self.api_key = api_key
         self.model = model or "mistral-small-latest"
         
@@ -15,6 +16,17 @@ class DataProcessor:
         matched_posts = []
         for post in posts:
             text_lower = post['text'].lower()
+            
+            # Check for exclude keywords first (e.g. "hiring", "job")
+            skip_post = False
+            for exclude_kw in self.exclude_keywords:
+                if re.search(rf'\b{re.escape(exclude_kw)}\b', text_lower):
+                    logger.info(f"Skipping post due to exclude keyword: '{exclude_kw}'")
+                    skip_post = True
+                    break
+                    
+            if skip_post:
+                continue
             
             # Check for keyword matches
             matched_keyword = None

@@ -147,5 +147,16 @@
     "supply agreement",
     "bulk supply",
     "institutional order"
+  ],
+  "exclude_keywords": [
+    "hiring",
+    "walk-in",
+    "recruitment",
+    "looking for",
+    "job",
+    "vacancy",
+    "career",
+    "join our team",
+    "we are hiring"
   ]
 }

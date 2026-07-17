@@ -42,6 +42,7 @@ async def main():
         
     target_profiles = config.get("target_profiles", [])
     keywords = config.get("keywords", [])
+    exclude_keywords = config.get("exclude_keywords", [])
     
     if not target_profiles or not keywords:
         logger.error("Profiles or keywords missing in config.json.")
@@ -51,6 +52,7 @@ async def main():
     scraper = LinkedInScraper(user_data_dir=user_data_dir)
     processor = DataProcessor(
         keywords=keywords,
+        exclude_keywords=exclude_keywords,
         api_key=mistral_api_key,
         model=mistral_model
     )
