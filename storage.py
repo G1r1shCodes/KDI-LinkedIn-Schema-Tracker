@@ -2,6 +2,7 @@ import pandas as pd
 import os
 import logging
 from datetime import datetime
+from formatter import format_excel
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +114,8 @@ class StorageManager:
             try:
                 # Use openpyxl engine explicitly for modern Excel
                 df_combined.to_excel(self.excel_path, index=False, engine='openpyxl')
+                # Apply rich formatting (header colours, column widths, row shading, freeze pane)
+                format_excel(self.excel_path)
                 logger.info(f"Successfully added {len(new_rows)} new posts to Excel.")
                 return len(new_rows)
             except PermissionError:

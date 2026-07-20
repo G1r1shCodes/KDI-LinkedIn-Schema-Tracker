@@ -47,6 +47,7 @@ class DataProcessor:
         """
         Calls the Mistral API to generate a 3-5 line summary.
         If no api_key is configured, returns a mock summary.
+        Includes exponential backoff retry on rate limit (HTTP 429).
         """
         if not self.api_key:
             # Mock summarizer
@@ -60,9 +61,6 @@ class DataProcessor:
             
         import time
         import requests
-        
-        # Add a short delay to avoid hitting Mistral API rate limits (HTTP 429)
-        time.sleep(1.5)
         
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -87,12 +85,36 @@ class DataProcessor:
         }
         
         endpoint = "https://api.mistral.ai/v1/chat/completions"
-        try:
-            response = requests.post(endpoint, headers=headers, json=data, timeout=30)
-            response.raise_for_status()
-            return response.json()['choices'][0]['message']['content'].strip()
-        except Exception as e:
-            logger.error(f"Error calling Mistral API: {e}")
-            if hasattr(e, 'response') and e.response is not None:
-                logger.error(f"Mistral API Response: {e.response.text}")
-            return "Error generating summary. Check logs for details."
+        max_retries = 5
+        backoff = 2  # seconds, doubles each retry
+        
+        for attempt in range(1, max_retries + 1):
+            try:
+                # Small base delay to be polite to the API
+                time.sleep(1.0)
+                response = requests.post(endpoint, headers=headers, json=data, timeout=30)
+                
+                if response.status_code == 429:
+                    retry_after = int(response.headers.get("Retry-After", backoff))
+                    wait = max(retry_after, backoff)
+                    logger.warning(f"Mistral rate limit hit (attempt {attempt}/{max_retries}). Retrying in {wait}s...")
+                    time.sleep(wait)
+                    backoff = min(backoff * 2, 60)  # cap at 60s
+                    continue
+                    
+                response.raise_for_status()
+                raw_summary = response.json()['choices'][0]['message']['content'].strip()
+                # Remove markdown bold characters because Excel doesn't render them
+                return raw_summary.replace('**', '')
+                
+            except requests.exceptions.HTTPError as e:
+                logger.error(f"Mistral HTTP error on attempt {attempt}: {e}")
+                if attempt == max_retries:
+                    return "Error generating summary (HTTP error after retries)."
+            except Exception as e:
+                logger.error(f"Error calling Mistral API on attempt {attempt}: {e}")
+                if attempt == max_retries:
+                    return "Error generating summary. Check logs for details."
+                    
+        return "Error generating summary after max retries."
+

@@ -2,6 +2,7 @@ import asyncio
 import random
 import datetime
 import logging
+import re
 from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
 
 # Configure logger
@@ -30,14 +31,25 @@ class LinkedInScraper:
         
         try:
             async with async_playwright() as p:
-                logger.info("Connecting to existing Chrome instance on port 9222...")
+                context = None
                 try:
+                    logger.info("Connecting to existing Chrome instance on port 9222...")
                     browser = await p.chromium.connect_over_cdp("http://127.0.0.1:9222")
                     context = browser.contexts[0]
                     page = await context.new_page()
                 except Exception as e:
-                    logger.error("Failed to connect to Chrome. Did you start Chrome with --remote-debugging-port=9222?")
-                    raise e
+                    logger.info(f"CDP connection to port 9222 not available ({e}). Launching persistent browser context...")
+                    context = await p.chromium.launch_persistent_context(
+                        user_data_dir=self.user_data_dir,
+                        channel="chrome",
+                        headless=False,
+                        ignore_default_args=["--enable-automation"],
+                        args=[
+                            "--start-maximized",
+                            "--disable-blink-features=AutomationControlled"
+                        ]
+                    )
+                    page = context.pages[0] if context.pages else await context.new_page()
                 
                 for idx, url in enumerate(profile_urls):
                     # Pause every 20 profiles to avoid triggering LinkedIn's bot detection
@@ -92,6 +104,9 @@ class LinkedInScraper:
             # Text
             text_el = await element.query_selector(SELECTORS["post_text"])
             text = await text_el.inner_text() if text_el else ""
+            
+            # Clean up excessive whitespace/newlines that break Excel rendering
+            text = re.sub(r'\s+', ' ', text).strip()
             
             # Date (Raw string like "1d", "2h")
             date_el = await element.query_selector(SELECTORS["post_date_raw"])

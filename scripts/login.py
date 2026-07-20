@@ -14,8 +14,13 @@ async def main():
     async with async_playwright() as p:
         context = await p.chromium.launch_persistent_context(
             user_data_dir=user_data_dir,
+            channel="chrome",
             headless=False,
-            args=["--start-maximized"]
+            ignore_default_args=["--enable-automation"],
+            args=[
+                "--start-maximized",
+                "--disable-blink-features=AutomationControlled"
+            ]
         )
         
         page = await context.new_page()
