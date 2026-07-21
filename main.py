@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+import datetime
 from dotenv import load_dotenv
 
 from scraper import LinkedInScraper
@@ -48,6 +49,19 @@ async def main():
         logger.error("Profiles or keywords missing in config.json.")
         return
         
+    # Load last scraped dates for round-robin sorting
+    last_scraped_file = "last_scraped.json"
+    last_scraped = {}
+    if os.path.exists(last_scraped_file):
+        try:
+            with open(last_scraped_file, "r") as f:
+                last_scraped = json.load(f)
+        except Exception:
+            pass
+
+    # Sort target profiles: never scraped (empty string) or oldest scraped first
+    target_profiles.sort(key=lambda url: last_scraped.get(url, ""))
+        
     # Initialize components
     scraper = LinkedInScraper(user_data_dir=user_data_dir)
     processor = DataProcessor(
@@ -67,6 +81,20 @@ async def main():
     except Exception as e:
         logger.error(f"Excel check failed: {e}")
         return
+        
+    # Enforce once-per-day limit
+    today_str = datetime.date.today().isoformat()
+    last_run_file = "last_run.txt"
+    if os.path.exists(last_run_file):
+        with open(last_run_file, "r") as f:
+            last_run = f.read().strip()
+        if last_run == today_str:
+            logger.warning("Scraper already ran today. As per safety guidelines, it can only run once per day to protect your account.")
+            return
+            
+    # Record today as run
+    with open(last_run_file, "w") as f:
+        f.write(today_str)
         
     # 1. Scrape
     logger.info("Phase 1: Scraping...")

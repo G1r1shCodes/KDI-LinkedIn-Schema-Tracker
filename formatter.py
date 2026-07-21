@@ -78,7 +78,7 @@ def format_excel(path: str, sheet_name: str | None = None) -> None:
             else:
                 cell.alignment = Alignment(vertical="top")
         # Allow Excel to naturally auto-fit row height for wrapped text
-        # (Setting a fixed height causes text overlapping if the text is too long)
+        ws.row_dimensions[row[0].row].height = None
 
     # --- Alternating row shading for readability ---
     stripe_fill = PatternFill(start_color="FFF2F2F2", end_color="FFF2F2F2", fill_type="solid")

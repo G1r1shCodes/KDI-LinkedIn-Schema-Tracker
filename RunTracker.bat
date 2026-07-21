@@ -15,6 +15,12 @@ if errorlevel 1 (
     exit /b 1
 )
 
+echo [Step 1.5] Setting up virtual environment...
+if not exist venv (
+    python -m venv venv
+)
+call venv\Scripts\activate.bat
+
 echo [Step 2] Installing / updating dependencies...
 python -m pip install -r requirements.txt --quiet
 if errorlevel 1 (
@@ -24,7 +30,7 @@ if errorlevel 1 (
 )
 
 echo [Step 3] Ensuring Playwright browser is installed...
-python -m playwright install chromium --quiet
+python -m playwright install chromium
 if errorlevel 1 (
     echo ERROR: Failed to install Playwright browser.
     pause

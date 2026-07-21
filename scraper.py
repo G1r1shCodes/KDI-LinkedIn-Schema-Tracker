@@ -3,8 +3,12 @@ import random
 import datetime
 import logging
 import re
+import time
+import unicodedata
+import json
+import os
 from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
-
+from playwright_stealth import Stealth
 # Configure logger
 logger = logging.getLogger(__name__)
 
@@ -29,6 +33,15 @@ class LinkedInScraper:
     async def scrape_profiles(self, profile_urls: list) -> list:
         all_posts = []
         
+        last_scraped_file = "last_scraped.json"
+        last_scraped = {}
+        if os.path.exists(last_scraped_file):
+            try:
+                with open(last_scraped_file, "r") as f:
+                    last_scraped = json.load(f)
+            except Exception:
+                pass
+        
         try:
             async with async_playwright() as p:
                 context = None
@@ -51,7 +64,12 @@ class LinkedInScraper:
                     )
                     page = context.pages[0] if context.pages else await context.new_page()
                 
+                start_time = time.time()
                 for idx, url in enumerate(profile_urls):
+                    if time.time() - start_time > 540:
+                        logger.warning("Session time limit (~9 minutes) reached. Stopping further scraping to prevent account restriction.")
+                        break
+
                     # Pause every 20 profiles to avoid triggering LinkedIn's bot detection
                     if idx > 0 and idx % 20 == 0:
                         logger.info(f"Take a break! Pausing for 30 seconds to avoid LinkedIn rate limits...")
@@ -60,11 +78,20 @@ class LinkedInScraper:
                     logger.info(f"[{idx+1}/{len(profile_urls)}] Visiting profile: {url}")
                     try:
                         await page.goto(url, wait_until="domcontentloaded", timeout=25000)
+                        await Stealth().apply_stealth_async(page)
                         await self._random_delay(4, 7)
                         
-                        # Scroll slightly to trigger lazy loading of posts
-                        await page.evaluate("window.scrollBy(0, 1000);")
-                        await self._random_delay(2, 4)
+                        # Simulate human scrolling
+                        logger.info("Simulating human-like scrolling...")
+                        for _ in range(3):
+                            # Scroll down a random amount between 300 and 800 pixels
+                            scroll_amount = random.randint(300, 800)
+                            await page.evaluate(f"window.scrollBy(0, {scroll_amount});")
+                            # Add some random jitter
+                            if random.choice([True, False]):
+                                jitter = random.randint(-50, 50)
+                                await page.evaluate(f"window.scrollBy(0, {jitter});")
+                            await self._random_delay(1.5, 3.5)
                         
                         # Extract posts
                         post_elements = await page.query_selector_all(SELECTORS["post_container"])
@@ -81,6 +108,11 @@ class LinkedInScraper:
                                     logger.info(f"Post skipped (not recent enough): {post_data.get('date_raw', '')}")
                             else:
                                 logger.info("Post skipped (empty text or extraction failed)")
+                                
+                        # Update state safely after finishing profile
+                        last_scraped[url] = datetime.datetime.now().isoformat()
+                        with open(last_scraped_file, "w") as f:
+                            json.dump(last_scraped, f, indent=4)
                             
                     except PlaywrightTimeoutError:
                         logger.error(f"Timeout while loading {url}")
@@ -105,8 +137,19 @@ class LinkedInScraper:
             text_el = await element.query_selector(SELECTORS["post_text"])
             text = await text_el.inner_text() if text_el else ""
             
-            # Clean up excessive whitespace/newlines that break Excel rendering
-            text = re.sub(r'\s+', ' ', text).strip()
+            # Clean up excessive whitespace but KEEP newlines for Excel row height calculations
+            # Removing all newlines creates a giant single-line string that causes Excel's
+            # text-wrap rendering to overlap text on top of itself.
+            
+            # 1. Normalize weird LinkedIn bold/italic characters back to standard text (Excel bug fix)
+            text = unicodedata.normalize('NFKD', text)
+            
+            # 2. Cleanup whitespace
+            text = re.sub(r'[\u200b\u200e\u200f\ufeff]', '', text) # Remove zero-width chars
+            text = re.sub(r'[ \t\r\f\v\xa0]+', ' ', text)          # Collapse spaces/tabs but keep \n
+            text = re.sub(r'\n ', '\n', text)                      # Remove leading space on newlines
+            text = re.sub(r' \n', '\n', text)                      # Remove trailing space on newlines
+            text = re.sub(r'\n{2,}', '\n\n', text).strip()         # Max 2 consecutive newlines
             
             # Date (Raw string like "1d", "2h")
             date_el = await element.query_selector(SELECTORS["post_date_raw"])

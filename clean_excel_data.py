@@ -1,5 +1,7 @@
 import pandas as pd
 import re
+import textwrap
+import unicodedata
 from formatter import format_excel
 import sys
 
@@ -13,7 +15,20 @@ def clean_excel(path="Master_Tracker.xlsx"):
 
     print("Cleaning 'Post Text' (removing excessive newlines/whitespace)...")
     if 'Post Text' in df.columns:
-        df['Post Text'] = df['Post Text'].astype(str).apply(lambda x: re.sub(r'\s+', ' ', x).strip() if pd.notnull(x) else x)
+        def sanitize_text(x):
+            if pd.notnull(x):
+                x = str(x)
+                # Normalize unicode to convert weird LinkedIn bold/italic characters to standard text
+                x = unicodedata.normalize('NFKD', x)
+                x = re.sub(r'[\u200b\u200e\u200f\ufeff]', '', x)
+                x = re.sub(r'[ \t\r\f\v\xa0]+', ' ', x)
+                x = re.sub(r'\n ', '\n', x)
+                x = re.sub(r' \n', '\n', x)
+                x = re.sub(r'\n{2,}', '\n\n', x).strip()
+                # Force wrap long lines so Excel calculates row height properly
+                x = '\n'.join([textwrap.fill(p, width=100) for p in x.split('\n')])
+            return x
+        df['Post Text'] = df['Post Text'].apply(sanitize_text)
 
     print("Cleaning 'Summary' (removing markdown **)...")
     if 'Summary' in df.columns:

@@ -24,6 +24,8 @@ async def main():
         )
         
         page = await context.new_page()
+        from playwright_stealth import Stealth
+        await Stealth().apply_stealth_async(page)
         await page.goto("https://www.linkedin.com/login")
         
         print("Waiting for you to log in... (waiting 3 minutes max)")
