@@ -22,3 +22,9 @@ chrome-data/
 *.log
 chrome_run.log
 chrome.log
+
+# Dynamic application state and temp files
+last_run.txt
+last_scraped.json
+debug.txt
+~$*.xlsx
